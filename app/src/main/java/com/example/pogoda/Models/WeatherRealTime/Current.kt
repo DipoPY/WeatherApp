@@ -1,4 +1,4 @@
-package com.example.Models
+package com.example.pogoda.Models.WeatherRealTime
 
 import com.google.gson.annotations.SerializedName
 
