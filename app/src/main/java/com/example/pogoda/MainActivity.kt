@@ -25,5 +25,4 @@ class MainActivity : ComponentActivity() {
         weatherViewModel.fetchWeatherRealTime("Moscow")
         weatherViewModel.fetchWeatherForThreeDays("Moscow")
     }
-
 }

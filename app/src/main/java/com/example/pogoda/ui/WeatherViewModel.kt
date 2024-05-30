@@ -15,10 +15,6 @@ import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-
 class WeatherViewModel : ViewModel() {
     var weatherData by mutableStateOf<WeatherApi?>(null)
         private set
@@ -60,8 +56,7 @@ class WeatherViewModel : ViewModel() {
                 })
         }
     }
-
-    @RequiresApi(Build.VERSION_CODES.O)
+    //@RequiresApi(Build.VERSION_CODES.O) //зачем тут ограничение по API, я пока сотру
     fun fetchWeatherForThreeDays(location: String) {
         isLoading = true
         errorMessage = null
@@ -81,7 +76,6 @@ class WeatherViewModel : ViewModel() {
                             Log.e("WeatherViewModel", "Error fetching weather for specific days: ${response.errorBody()?.string()}")
                         }
                     }
-
                     override fun onFailure(call: Call<WeatherForSpecificDays>, t: Throwable) {
                         isLoading = false
                         errorMessage = t.message
@@ -90,6 +84,4 @@ class WeatherViewModel : ViewModel() {
                 })
         }
     }
-
-
 }
