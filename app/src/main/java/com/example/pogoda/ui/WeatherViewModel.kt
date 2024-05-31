@@ -62,7 +62,7 @@ class WeatherViewModel : ViewModel() {
         errorMessage = null
         val apiKey: String = API_KEY
         viewModelScope.launch {
-            val date = 4
+            val date = 3
             Log.d("WeatherViewModel", "Fetching weather for date: $date")
             weatherService.getWeatherDay(apiKey, location, date)
                 .enqueue(object : Callback<WeatherForSpecificDays> {

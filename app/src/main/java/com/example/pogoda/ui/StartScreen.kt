@@ -1,59 +1,66 @@
 package com.example.pogoda.ui
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.pogoda.R
-
+import com.google.accompanist.insets.ProvideWindowInsets
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(weatherViewModel: WeatherViewModel) {
     val weatherData = weatherViewModel.weatherData
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = { MainTopBar(weatherViewModel) },
-    )
-    {
-        Background("${weatherData?.current?.condition?.text}")
-        Column(
+
+    val systemUiController = rememberSystemUiController()
+//    val useDarkIcons = MaterialTheme.colorScheme
+
+    SideEffect {
+        systemUiController.setSystemBarsColor(
+            color = Color.Blue, // Прозрачный цвет для системных панелей
+//            darkIcons = useDarkIcons // Устанавливаем цвет иконок в системных панелях
+        )
+    }
+
+    ProvideWindowInsets {
+        Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(it),
-            verticalArrangement = Arrangement.SpaceBetween
+                .systemBarsPadding(),
+            topBar = { MainTopBar(weatherViewModel) },
         ) {
-            Temperature(weatherViewModel)
-            FutureTemperature(weatherViewModel)
+            Background(weatherData?.current?.condition?.text ?: "")
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(it),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Temperature(weatherViewModel)
+                FutureTemperature(weatherViewModel)
+            }
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,7 +91,7 @@ fun MainTopBar(weatherViewModel: WeatherViewModel) {
                     }
                     weatherData != null -> {
                         Column {
-                            Text(text = "${weatherData?.location?.name}", color = Color.White)
+                            Text(text = "${weatherData.location?.name}", color = Color.White)
                         }
                     }
                 }
@@ -103,23 +110,88 @@ fun MainTopBar(weatherViewModel: WeatherViewModel) {
     )
 }
 
+
+
 @Composable
 fun FutureTemperature(weatherViewModel: WeatherViewModel){
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(
+                start = 16.dp,
+                top = 16.dp,
+                end = 16.dp,
+                bottom = 16.dp
+            )
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White.copy(alpha = 0.5f))
     ) {
-        DataFutureTemperature(weatherViewModel)
+        DataFutureTemperature(weatherViewModel, modifier = Modifier.weight(1f))
     }
 }
 
+
+@Composable
+fun DataFutureTemperature(weatherViewModel: WeatherViewModel, modifier: Modifier){
+    val weatherDays = weatherViewModel.weatherDays
+    weatherDays?.forecast?.forecastday?.forEach { forecastDay ->
+        Row(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(
+                    horizontal = 16.dp
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val formatedData = DataFormated(forecastDay.date)
+                val DayCondition = forecastDay?.day?.condition?.text ?: "Im null"
+                Text(
+                    text = "${formatedData} ${
+                        MinTextFormat(DayCondition)
+                    }",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "${forecastDay.day?.maxtempC?.toInt() ?: "N/A"}°/${forecastDay.day?.mintempC?.toInt() ?: "N/A"}°",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            Log.e("Data", "${forecastDay.date} ")
+
+        }
+
+    }
+}
+
+fun DataFormated(data: String?): String{
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val date = LocalDate.parse(data, formatter)
+    val today = LocalDate.now()
+    val tomorrow = today.plusDays(1)
+    val dayAfterTomorrow = today.plusDays(2)
+
+    var formatedData = "Ой"
+
+    when(date){
+        today -> formatedData="Сегодня"
+        tomorrow -> formatedData ="Завтра"
+        dayAfterTomorrow->{
+            val dayName= dayAfterTomorrow.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale("ru"))
+            formatedData = dayName.capitalize()
+        }
+    }
+    return formatedData
+}
+
+
+
 @Composable
 fun Temperature(weatherViewModel: WeatherViewModel){
-
     val weatherData = weatherViewModel.weatherData
     val isLoading = weatherViewModel.isLoading
     val errorMessage = weatherViewModel.errorMessage
-
     Box(
         modifier = Modifier
             .fillMaxHeight(0.5f)
@@ -134,7 +206,9 @@ fun Temperature(weatherViewModel: WeatherViewModel){
             }
             weatherData != null -> {
                 Column(
-                    modifier = Modifier.fillMaxHeight().fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
@@ -143,7 +217,10 @@ fun Temperature(weatherViewModel: WeatherViewModel){
                             color = Color.White,
                             style = MaterialTheme.typography.displayLarge
                         )
-                        Text(text = "${weatherData?.current?.condition?.text}", color = Color.White)
+                        Text(
+                            text = "${weatherData?.current?.condition?.text}",
+                            color = Color.White
+                        )
                 }
             }
         }
@@ -151,95 +228,26 @@ fun Temperature(weatherViewModel: WeatherViewModel){
 }
 
 
-@Composable
-fun DataFutureTemperature(weatherViewModel: WeatherViewModel){
-    val weatherDays = weatherViewModel.weatherDays
-    Box(
-        modifier = Modifier
-            .fillMaxHeight(0.33f)
-            .fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(text = weatherDays?.location?.name.orEmpty(), color = Color.White)
-            weatherDays?.forecast?.forecastday?.forEach { forecastDay ->
-                Text(text = forecastDay.date.orEmpty(), color = Color.White)
-                Text(
-                    text = "Max temp: ${forecastDay.day?.maxtempC ?: "N/A"} °C",
-                    color = Color.White
-                )
-                Text(
-                    text = "Min temp: ${forecastDay.day?.mintempC ?: "N/A"} °C",
-                    color = Color.White
-                )
-            }
-
-        }
+fun MinTextFormat(weatherCondition:String):String{
+    val Resource = when{
+        Regex("sun", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition)-> "Sunny"
+        Regex("rain", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition)-> "Rainy"
+        Regex("cloud", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition)-> "Cloudly"
+        Regex("snow", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition) -> "Snowy"
+        else -> "Default"
     }
-    Box(
-        modifier = Modifier
-            .fillMaxHeight(0.5f)
-            .fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(text = weatherDays?.location?.name.orEmpty(), color = Color.White)
-            weatherDays?.forecast?.forecastday?.forEach { forecastDay ->
-                Text(text = forecastDay.date.orEmpty(), color = Color.White)
-                Text(
-                    text = "Max temp: ${forecastDay.day?.maxtempC ?: "N/A"} °C",
-                    color = Color.White
-                )
-                Text(
-                    text = "Min temp: ${forecastDay.day?.mintempC ?: "N/A"} °C",
-                    color = Color.White
-                )
-            }
-
-        }
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxHeight(1f)
-            .fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(text = weatherDays?.location?.name.orEmpty(), color = Color.White)
-            weatherDays?.forecast?.forecastday?.forEach { forecastDay ->
-                Text(text = forecastDay.date.orEmpty(), color = Color.White)
-                Text(
-                    text = "Max temp: ${forecastDay.day?.maxtempC ?: "N/A"} °C",
-                    color = Color.White
-                )
-                Text(
-                    text = "Min temp: ${forecastDay.day?.mintempC ?: "N/A"} °C",
-                    color = Color.White
-                )
-            }
-
-        }
-    }
+    return Resource
 }
 
 @Composable
 fun Background(weatherCondition:String){
     Box(modifier = Modifier.fillMaxSize()){
-        val backgroundResource = when(weatherCondition){
-            "Sunny" -> R.drawable.sunny_background
-            "Rainy" -> R.drawable.rainy_background
-            "Cloudy" -> R.drawable.cloudy_background
-            "Snowy" -> R.drawable.snowy_background
-            else -> R.drawable.default_background
+        val backgroundResource = when{
+            MinTextFormat(weatherCondition)=="Sunny"->R.drawable.sunny_background
+            MinTextFormat(weatherCondition)=="Rainy"-> R.drawable.rainy_background
+            MinTextFormat(weatherCondition)=="Cloudly"-> R.drawable.cloudy_background
+            MinTextFormat(weatherCondition)=="Snowy" -> R.drawable.snowy_background
+            else ->R.drawable.default_background
         }
         Image(painter = painterResource(id = backgroundResource),
             contentDescription = "Задний фон",
