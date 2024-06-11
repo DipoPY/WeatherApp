@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.example.pogoda.Models.WeatherRealTime.AirQuality
 import com.example.pogoda.R
 import com.google.accompanist.insets.ProvideWindowInsets
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -26,21 +28,49 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+
+fun MinTextFormat(weatherCondition:String):String{
+    val Resource = when{
+        Regex("sun", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition)-> "Sunny"
+        Regex("rain", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition)-> "Rainy"
+        Regex("cloud", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition)-> "Cloudly"
+        Regex("snow", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition) -> "Snowy"
+        else -> "Default"
+    }
+    return Resource
+}
+@Composable
+fun Background(weatherCondition:String){
+    Box(modifier = Modifier.fillMaxSize()){
+        val backgroundResource = when{
+            MinTextFormat(weatherCondition)=="Sunny"->R.drawable.sunny_background
+            MinTextFormat(weatherCondition)=="Rainy"-> R.drawable.rainy_background
+            MinTextFormat(weatherCondition)=="Cloudly"-> R.drawable.cloudy_background
+            MinTextFormat(weatherCondition)=="Snowy" -> R.drawable.snowy_background
+            else ->R.drawable.default_background
+        }
+        Image(painter = painterResource(id = backgroundResource),
+            contentDescription = "Задний фон",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize())
+    }
+}
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun MainScreen(weatherViewModel: WeatherViewModel) {
+fun MainScreen(
+    weatherViewModel: WeatherViewModel,
+    navController: NavController,
+    airQuality: AirQuality?
+) {
     val weatherData = weatherViewModel.weatherData
-
     val systemUiController = rememberSystemUiController()
 //    val useDarkIcons = MaterialTheme.colorScheme
-
     SideEffect {
         systemUiController.setSystemBarsColor(
-            color = Color.Blue, // Прозрачный цвет для системных панелей
+            color = Color.Blue, // Синий цвет для системных панелей
 //            darkIcons = useDarkIcons // Устанавливаем цвет иконок в системных панелях
         )
     }
-
     ProvideWindowInsets {
         Scaffold(
             modifier = Modifier
@@ -51,24 +81,21 @@ fun MainScreen(weatherViewModel: WeatherViewModel) {
             Background(weatherData?.current?.condition?.text ?: "")
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(it),
+                    .fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Temperature(weatherViewModel)
+            ){
+                Temperature(weatherViewModel, navController, airQuality)
                 FutureTemperature(weatherViewModel)
             }
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainTopBar(weatherViewModel: WeatherViewModel) {
     val weatherData = weatherViewModel.weatherData
     val isLoading = weatherViewModel.isLoading
     val errorMessage = weatherViewModel.errorMessage
-
     TopAppBar(
         modifier = Modifier.height(56.dp),
         colors = TopAppBarDefaults.topAppBarColors(
@@ -109,9 +136,6 @@ fun MainTopBar(weatherViewModel: WeatherViewModel) {
         }
     )
 }
-
-
-
 @Composable
 fun FutureTemperature(weatherViewModel: WeatherViewModel){
     Column(
@@ -124,13 +148,11 @@ fun FutureTemperature(weatherViewModel: WeatherViewModel){
                 bottom = 16.dp
             )
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.5f))
+            .background(Color.DarkGray.copy(alpha = 0.7f))
     ) {
         DataFutureTemperature(weatherViewModel, modifier = Modifier.weight(1f))
     }
 }
-
-
 @Composable
 fun DataFutureTemperature(weatherViewModel: WeatherViewModel, modifier: Modifier){
     val weatherDays = weatherViewModel.weatherDays
@@ -159,21 +181,16 @@ fun DataFutureTemperature(weatherViewModel: WeatherViewModel, modifier: Modifier
                     style = MaterialTheme.typography.bodyLarge
                 )
             Log.e("Data", "${forecastDay.date} ")
-
         }
-
     }
 }
-
 fun DataFormated(data: String?): String{
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     val date = LocalDate.parse(data, formatter)
     val today = LocalDate.now()
     val tomorrow = today.plusDays(1)
     val dayAfterTomorrow = today.plusDays(2)
-
     var formatedData = "Ой"
-
     when(date){
         today -> formatedData="Сегодня"
         tomorrow -> formatedData ="Завтра"
@@ -184,11 +201,12 @@ fun DataFormated(data: String?): String{
     }
     return formatedData
 }
-
-
-
 @Composable
-fun Temperature(weatherViewModel: WeatherViewModel){
+fun Temperature(
+    weatherViewModel: WeatherViewModel,
+    navController: NavController,
+    airQuality: AirQuality?
+){
     val weatherData = weatherViewModel.weatherData
     val isLoading = weatherViewModel.isLoading
     val errorMessage = weatherViewModel.errorMessage
@@ -221,37 +239,23 @@ fun Temperature(weatherViewModel: WeatherViewModel){
                             text = "${weatherData?.current?.condition?.text}",
                             color = Color.White
                         )
+                    Button(
+                        onClick = { navController.navigate("details") },
+                        modifier = Modifier.padding(top = 16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.DarkGray
+                        )
+                    ) {
+
+                        Text(
+                            text =
+                            """ИКВ ${calculateOverallAQI(airQuality)}""",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-
-fun MinTextFormat(weatherCondition:String):String{
-    val Resource = when{
-        Regex("sun", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition)-> "Sunny"
-        Regex("rain", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition)-> "Rainy"
-        Regex("cloud", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition)-> "Cloudly"
-        Regex("snow", RegexOption.IGNORE_CASE).containsMatchIn(weatherCondition) -> "Snowy"
-        else -> "Default"
-    }
-    return Resource
-}
-
-@Composable
-fun Background(weatherCondition:String){
-    Box(modifier = Modifier.fillMaxSize()){
-        val backgroundResource = when{
-            MinTextFormat(weatherCondition)=="Sunny"->R.drawable.sunny_background
-            MinTextFormat(weatherCondition)=="Rainy"-> R.drawable.rainy_background
-            MinTextFormat(weatherCondition)=="Cloudly"-> R.drawable.cloudy_background
-            MinTextFormat(weatherCondition)=="Snowy" -> R.drawable.snowy_background
-            else ->R.drawable.default_background
-        }
-        Image(painter = painterResource(id = backgroundResource),
-            contentDescription = "Задний фон",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize())
     }
 }

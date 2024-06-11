@@ -50,6 +50,11 @@ android {
 }
 
 dependencies {
+
+    implementation ("org.jetbrains.kotlin:kotlin-reflect:1.6.21") // Используйте актуальную версию
+    implementation ("androidx.compose.ui:ui:1.1.1") // Используйте актуальную версию
+    implementation ("androidx.compose.material:material:1.1.1") // Используйте актуальную версию
+    implementation ("androidx.navigation:navigation-compose:2.4.0-alpha10")
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.30.1") // Замените на актуальную версию
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")

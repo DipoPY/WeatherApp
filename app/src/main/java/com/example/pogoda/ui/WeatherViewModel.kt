@@ -47,7 +47,6 @@ class WeatherViewModel : ViewModel() {
                             Log.e("WeatherViewModel", "Error fetching real-time weather: ${response.errorBody()?.string()}")
                         }
                     }
-
                     override fun onFailure(call: Call<WeatherApi>, t: Throwable) {
                         isLoading = false
                         errorMessage = t.message
